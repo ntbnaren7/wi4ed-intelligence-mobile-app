@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../../core/providers/navigation_provider.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../data/models/device_state.dart';
 import '../../../data/services/mock_data_service.dart';
-import '../../widgets/glass_card.dart';
-import '../../widgets/animated_gauge.dart';
-import '../../widgets/metric_tile.dart';
+import '../../widgets/soft_card.dart';
+import '../../widgets/metric_ring.dart';
 import '../../widgets/anomaly_banner.dart';
-import '../../widgets/trend_chip.dart';
 
-/// Home screen with hero power card, system state, and metrics grid
+/// Premium dark Home screen - matches reference UI
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -39,6 +38,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       child: Padding(
@@ -46,23 +47,23 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: AppSpacing.md),
-            
-            // Header with logo and status
-            _buildHeader(),
-            
+            const SizedBox(height: AppSpacing.lg),
+
+            // Header
+            _buildHeader(theme),
+
+            const SizedBox(height: AppSpacing.xxl),
+
+            // Hero power gauge - Semi-circular
+            _buildHeroGauge(theme),
+
             const SizedBox(height: AppSpacing.xl),
-            
-            // Hero power card with gauge
-            _buildHeroCard(),
-            
+
+            // Metrics row
+            _buildMetricsRow(theme),
+
             const SizedBox(height: AppSpacing.lg),
-            
-            // Metrics grid
-            _buildMetricsGrid(),
-            
-            const SizedBox(height: AppSpacing.lg),
-            
+
             // Anomaly banner (if active)
             if (_deviceState.activeAnomaly != null && _showAnomaly)
               Padding(
@@ -72,225 +73,320 @@ class _HomeScreenState extends State<HomeScreen> {
                   description: _deviceState.activeAnomaly!.description,
                   applianceName: _deviceState.activeAnomaly!.applianceName,
                   severity: _deviceState.activeAnomaly!.severity,
-                  onTap: () {
-                    // Navigate to alerts
-                  },
+                  onTap: () {},
                   onDismiss: _toggleAnomaly,
                 ),
               ),
-            
-            // Quick actions section
-            _buildQuickActions(),
-            
-            const SizedBox(height: AppSpacing.xxl),
+
+            // Activity section
+            _buildActivitySection(theme),
+
+            const SizedBox(height: AppSpacing.huge),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(ThemeData theme) {
+    final now = DateTime.now();
+    final dateStr = '${_getDayName(now.weekday)}, ${now.day} ${_getMonthName(now.month)}';
+
     return Row(
       children: [
-        // Logo
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            gradient: AppColors.primaryGradient,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primaryGlow,
-                blurRadius: 12,
-              ),
-            ],
-          ),
-          child: const Center(
-            child: Text(
-              'W4',
-              style: TextStyle(
-                color: AppColors.base,
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: AppSpacing.sm),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'WI4ED',
-              style: AppTypography.cardTitle,
+              'Current State',
+              style: theme.textTheme.headlineMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
             ),
+            const SizedBox(height: 4),
             Text(
-              'Electrical Safety Monitor',
-              style: AppTypography.caption,
+              dateStr,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+              ),
             ),
           ],
         ),
         const Spacer(),
-        // Mode indicator
-        ModeChip(mode: _deviceState.operatingMode),
-        const SizedBox(width: AppSpacing.sm),
-        // Status indicators
-        _buildStatusIndicators(),
-      ],
-    );
-  }
-
-  Widget _buildStatusIndicators() {
-    return Row(
-      children: [
-        // Online status
+        // Avatar/Status
         Container(
-          width: 10,
-          height: 10,
+          width: 48,
+          height: 48,
           decoration: BoxDecoration(
-            color: _deviceState.isOnline ? AppColors.online : AppColors.offline,
+            color: AppColors.primary.withValues(alpha: 0.15),
             shape: BoxShape.circle,
-            boxShadow: _deviceState.isOnline
-                ? [
-                    BoxShadow(
-                      color: AppColors.online.withValues(alpha: 0.5),
-                      blurRadius: 6,
-                    ),
-                  ]
-                : null,
+            border: Border.all(
+              color: AppColors.primary.withValues(alpha: 0.3),
+              width: 2,
+            ),
           ),
-        ),
-        const SizedBox(width: 6),
-        // Sync indicator
-        Icon(
-          _deviceState.syncLocked ? Icons.sync : Icons.sync_disabled,
-          size: 18,
-          color: _deviceState.syncLocked
-              ? AppColors.primary
-              : AppColors.textSecondary,
+          child: const Icon(
+            Icons.bolt_rounded,
+            color: AppColors.primary,
+            size: 26,
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildHeroCard() {
+  Widget _buildHeroGauge(ThemeData theme) {
     final isNormal = _deviceState.isNormal;
-    final statusColor = isNormal ? AppColors.primary : AppColors.anomalyAmber;
+    final statusColor = isNormal ? AppColors.primary : AppColors.warning;
+    final powerPercent = (_deviceState.totalPowerW / 5000 * 100).clamp(0, 100);
+    final statusText = isNormal ? 'Normal' : 'High Usage';
 
-    return GlassCard(
-      glowColor: statusColor.withValues(alpha: 0.3),
-      padding: const EdgeInsets.all(AppSpacing.cardPaddingLg),
-      child: Column(
+    return SoftCard(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 32),
+      child: Stack(
         children: [
-          // Gauge with power value
-          AnimatedGauge(
-            value: _deviceState.totalPowerW,
-            maxValue: 5000,
-            size: 200,
-            strokeWidth: 14,
-            progressColor: statusColor,
-            centerWidget: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  _deviceState.totalPowerW.toStringAsFixed(0),
-                  style: AppTypography.heroMetric,
+          // Radial glow background effect
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(24),
+                gradient: RadialGradient(
+                  center: const Alignment(0, -0.3),
+                  radius: 0.8,
+                  colors: [
+                    statusColor.withValues(alpha: 0.08),
+                    Colors.transparent,
+                  ],
                 ),
-                Text(
-                  'W',
-                  style: AppTypography.unit.copyWith(
-                    fontSize: 20,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          // Label
-          Text(
-            'Total Live Power',
-            style: AppTypography.body,
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          // System state
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.md,
-              vertical: AppSpacing.xs,
-            ),
-            decoration: BoxDecoration(
-              color: statusColor.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: statusColor.withValues(alpha: 0.3),
               ),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  isNormal ? Icons.check_circle : Icons.warning_rounded,
-                  size: 16,
-                  color: statusColor,
+          ),
+          // Main content
+          Column(
+            children: [
+              // Semi-circular gauge
+              MetricRing(
+                value: _deviceState.totalPowerW,
+                maxValue: 5000,
+                size: 280,
+                strokeWidth: 18,
+                color: statusColor,
+                centerWidget: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '${powerPercent.toInt()}',
+                      style: theme.textTheme.displayLarge?.copyWith(
+                        fontSize: 64,
+                        fontWeight: FontWeight.w700,
+                        color: theme.colorScheme.onSurface,
+                        height: 1,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Power Score',
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 6),
-                Text(
-                  _deviceState.systemStateText,
-                  style: AppTypography.captionMedium.copyWith(
-                    color: statusColor,
+              ),
+              const SizedBox(height: 20),
+              // Status and Trend row
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Status chip
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: statusColor.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: statusColor.withValues(alpha: 0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: statusColor,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          statusText,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: statusColor,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            ),
+                  const SizedBox(width: 12),
+                  // Trend indicator
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: AppColors.darkSurfaceHighlight,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          isNormal ? Icons.trending_down_rounded : Icons.trending_up_rounded,
+                          size: 16,
+                          color: isNormal ? AppColors.healthGreen : AppColors.anomalyAmber,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          isNormal ? '12% lower' : '8% higher',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildMetricsGrid() {
+  Widget _buildMetricsRow(ThemeData theme) {
+    return Row(
+      children: [
+        Expanded(child: _MetricTile(
+          icon: Icons.bolt_rounded,
+          label: 'Power',
+          value: _deviceState.totalPowerW.toStringAsFixed(0),
+          unit: 'W',
+          target: '/ 5000W',
+        )),
+        const SizedBox(width: AppSpacing.cardGap),
+        Expanded(child: _MetricTile(
+          icon: Icons.electric_meter_rounded,
+          label: 'Energy',
+          value: _deviceState.energyKwh.toStringAsFixed(1),
+          unit: 'kWh',
+          target: '/ 50 kWh',
+        )),
+      ],
+    );
+  }
+
+  Widget _buildActivitySection(ThemeData theme) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Expanded(
-              child: MetricTile(
-                value: _deviceState.voltageVrms.toStringAsFixed(1),
-                unit: 'V',
-                label: 'Voltage RMS',
-                icon: Icons.bolt,
-              ),
+            const Icon(
+              Icons.show_chart_rounded,
+              size: 20,
+              color: AppColors.primary,
             ),
-            const SizedBox(width: AppSpacing.cardGap),
-            Expanded(
-              child: MetricTile(
-                value: _deviceState.currentIrms.toStringAsFixed(1),
-                unit: 'A',
-                label: 'Current RMS',
-                icon: Icons.electric_meter,
+            const SizedBox(width: 8),
+            Text(
+              'Today\'s Activity',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
               ),
             ),
           ],
         ),
-        const SizedBox(height: AppSpacing.cardGap),
+        const SizedBox(height: AppSpacing.md),
+        SoftCard(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.trending_up_rounded,
+                          color: AppColors.primary,
+                          size: 22,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Peak Usage',
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '2:30 PM',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  Text(
+                    '${_deviceState.totalPowerW.toStringAsFixed(0)}W',
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              // Activity bars visualization
+              _buildActivityBars(theme),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        // Quick actions
         Row(
           children: [
             Expanded(
-              child: MetricTile(
-                value: _deviceState.energyKwh.toStringAsFixed(1),
-                unit: 'kWh',
-                label: 'Energy Today',
-                icon: Icons.power,
+              child: _ActionCard(
+                icon: Icons.devices_rounded,
+                label: 'View Devices',
+                onTap: () {
+                  Provider.of<NavigationProvider>(context, listen: false).setIndex(1);
+                },
               ),
             ),
             const SizedBox(width: AppSpacing.cardGap),
             Expanded(
-              child: MetricTile(
-                value: _deviceState.lastUpdateText,
-                unit: '',
-                label: 'Last Update',
-                icon: Icons.access_time,
+              child: _ActionCard(
+                icon: Icons.add_rounded,
+                label: 'Add Device',
+                onTap: () {},
               ),
             ),
           ],
@@ -299,37 +395,28 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildQuickActions() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Quick Actions',
-          style: AppTypography.sectionTitle,
-        ),
-        const SizedBox(height: AppSpacing.md),
-        Row(
-          children: [
-            Expanded(
-              child: _QuickActionCard(
-                icon: Icons.devices,
-                label: 'View All\nAppliances',
-                color: AppColors.primary,
-                onTap: () {},
+  Widget _buildActivityBars(ThemeData theme) {
+    // Simulated hourly activity
+    final bars = [0.3, 0.5, 0.7, 0.9, 0.8, 0.6, 0.4, 0.5, 0.7, 0.6, 0.5, 0.4];
+    
+    return SizedBox(
+      height: 60,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: bars.asMap().entries.map((entry) {
+          final isHigh = entry.value > 0.7;
+          return Expanded(
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 2),
+              decoration: BoxDecoration(
+                color: isHigh ? AppColors.warning : AppColors.primary,
+                borderRadius: BorderRadius.circular(4),
               ),
+              height: 60 * entry.value,
             ),
-            const SizedBox(width: AppSpacing.cardGap),
-            Expanded(
-              child: _QuickActionCard(
-                icon: Icons.add_circle_outline,
-                label: 'Register\nNew Device',
-                color: AppColors.secondary,
-                onTap: () {},
-              ),
-            ),
-          ],
-        ),
-      ],
+          );
+        }).toList(),
+      ),
     );
   }
 
@@ -347,48 +434,145 @@ class _HomeScreenState extends State<HomeScreen> {
         return type;
     }
   }
+
+  String _getDayName(int weekday) {
+    const days = ['', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    return days[weekday];
+  }
+
+  String _getMonthName(int month) {
+    const months = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return months[month];
+  }
 }
 
-class _QuickActionCard extends StatelessWidget {
+// ============================================================
+// HELPER WIDGETS
+// ============================================================
+
+class _MetricTile extends StatelessWidget {
   final IconData icon;
   final String label;
-  final Color color;
-  final VoidCallback onTap;
+  final String value;
+  final String unit;
+  final String target;
 
-  const _QuickActionCard({
+  const _MetricTile({
     required this.icon,
     required this.label,
-    required this.color,
+    required this.value,
+    required this.unit,
+    required this.target,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return SoftCard(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                icon,
+                size: 18,
+                color: AppColors.primary,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                value,
+                style: theme.textTheme.displaySmall?.copyWith(
+                  fontSize: 40,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Text(
+                  unit,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            target,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ActionCard extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _ActionCard({
+    required this.icon,
+    required this.label,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GlassCard(
+    final theme = Theme.of(context);
+
+    return SoftCard(
       onTap: onTap,
-      glowColor: color.withValues(alpha: 0.2),
-      child: Column(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      child: Row(
         children: [
           Container(
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.15),
+              color: AppColors.primary,
               borderRadius: BorderRadius.circular(14),
             ),
             child: Icon(
               icon,
-              color: color,
-              size: 24,
+              color: AppColors.darkBackground,
+              size: 26,
             ),
           ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            label,
-            style: AppTypography.captionMedium.copyWith(
-              color: AppColors.textPrimary,
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              label,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
             ),
-            textAlign: TextAlign.center,
+          ),
+          Icon(
+            Icons.chevron_right_rounded,
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+            size: 24,
           ),
         ],
       ),

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 
-/// Custom bottom navigation bar with soft highlights and rounded icons
+/// Premium bottom navigation - pill-style icons with lime accent
 class WI4EDBottomNavBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
@@ -15,38 +15,39 @@ class WI4EDBottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
+    final bgColor = isDark ? AppColors.darkSurface : AppColors.lightSurface;
+    final borderColor = isDark 
+        ? AppColors.primary.withValues(alpha: 0.15) 
+        : AppColors.lightBorder;
+
     return Container(
       height: AppSpacing.bottomNavHeight,
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: bgColor,
         border: Border(
           top: BorderSide(
-            color: AppColors.surfaceLight.withValues(alpha: 0.5),
+            color: borderColor,
             width: 1,
           ),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.3),
-            blurRadius: 20,
-            offset: const Offset(0, -5),
-          ),
-        ],
       ),
       child: SafeArea(
         top: false,
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             _NavItem(
               icon: Icons.home_rounded,
-              label: 'Home',
+              label: 'Stats',
               isSelected: currentIndex == 0,
               onTap: () => onTap(0),
             ),
             _NavItem(
               icon: Icons.devices_rounded,
-              label: 'Appliances',
+              label: 'Devices',
               isSelected: currentIndex == 1,
               onTap: () => onTap(1),
             ),
@@ -55,7 +56,7 @@ class WI4EDBottomNavBar extends StatelessWidget {
               label: 'Alerts',
               isSelected: currentIndex == 2,
               onTap: () => onTap(2),
-              showBadge: true, // Demo badge
+              showBadge: true,
             ),
             _NavItem(
               icon: Icons.settings_rounded,
@@ -70,7 +71,7 @@ class WI4EDBottomNavBar extends StatelessWidget {
   }
 }
 
-class _NavItem extends StatefulWidget {
+class _NavItem extends StatelessWidget {
   final IconData icon;
   final String label;
   final bool isSelected;
@@ -86,115 +87,80 @@ class _NavItem extends StatefulWidget {
   });
 
   @override
-  State<_NavItem> createState() => _NavItemState();
-}
-
-class _NavItemState extends State<_NavItem>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _scaleAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 150),
-      vsync: this,
-    );
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.9).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
-    );
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
+    final selectedColor = AppColors.primary;
+    final unselectedColor = isDark 
+        ? AppColors.darkTextTertiary 
+        : AppColors.lightTextTertiary;
+
     return GestureDetector(
-      onTapDown: (_) => _controller.forward(),
-      onTapUp: (_) {
-        _controller.reverse();
-        widget.onTap();
-      },
-      onTapCancel: () => _controller.reverse(),
+      onTap: onTap,
       behavior: HitTestBehavior.opaque,
-      child: AnimatedBuilder(
-        animation: _scaleAnimation,
-        builder: (context, child) {
-          return Transform.scale(
-            scale: _scaleAnimation.value,
-            child: SizedBox(
-              width: 70,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+      child: SizedBox(
+        width: 72,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Pill-style icon container
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeOutCubic,
+              width: isSelected ? 56 : 48,
+              height: 36,
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? (isDark ? selectedColor : selectedColor.withValues(alpha: 0.15))
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                clipBehavior: Clip.none,
                 children: [
-                  // Icon with highlight
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: widget.isSelected
-                          ? AppColors.primary.withValues(alpha: 0.15)
-                          : Colors.transparent,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        Icon(
-                          widget.icon,
-                          size: 24,
-                          color: widget.isSelected
-                              ? AppColors.primary
-                              : AppColors.textSecondary,
-                        ),
-                        if (widget.showBadge)
-                          Positioned(
-                            top: -2,
-                            right: -2,
-                            child: Container(
-                              width: 8,
-                              height: 8,
-                              decoration: BoxDecoration(
-                                color: AppColors.anomalyRed,
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppColors.anomalyRed.withValues(alpha: 0.5),
-                                    blurRadius: 4,
-                                  ),
-                                ],
-                              ),
-                            ),
+                  Icon(
+                    icon,
+                    size: 26,
+                    color: isSelected 
+                        ? (isDark ? AppColors.darkBackground : selectedColor)
+                        : unselectedColor,
+                  ),
+                  if (showBadge)
+                    Positioned(
+                      top: 4,
+                      right: 8,
+                      child: Container(
+                        width: 10,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          color: AppColors.error,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isDark 
+                                ? AppColors.darkSurface 
+                                : AppColors.lightSurface,
+                            width: 2,
                           ),
-                      ],
+                        ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  // Label
-                  Text(
-                    widget.label,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight:
-                          widget.isSelected ? FontWeight.w600 : FontWeight.w400,
-                      color: widget.isSelected
-                          ? AppColors.primary
-                          : AppColors.textSecondary,
-                    ),
-                  ),
                 ],
               ),
             ),
-          );
-        },
+            const SizedBox(height: 6),
+            // Label
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                color: isSelected ? selectedColor : unselectedColor,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

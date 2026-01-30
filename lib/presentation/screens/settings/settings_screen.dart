@@ -1,17 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:wi4ed_app/l10n/app_localizations.dart';
+
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/providers/locale_provider.dart';
+import '../../../core/providers/theme_provider.dart';
 import '../../../data/services/mock_data_service.dart';
-import '../../widgets/glass_card.dart';
-import '../../widgets/metric_tile.dart';
+import '../../widgets/soft_card.dart';
+import '../../widgets/language_selector.dart';
+import '../auth/login_screen.dart';
 
-/// Settings and diagnostics screen with device info and advanced options
+/// Professional Settings screen with theme toggle and clean design
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final deviceState = MockDataService.instance.getDeviceState();
 
     return SingleChildScrollView(
@@ -22,214 +30,183 @@ class SettingsScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: AppSpacing.md),
-            
-            // Page title
+
+            // Page Title
             Text(
-              'Settings',
-              style: AppTypography.pageTitle,
+              l10n.settingsTab,
+              style: theme.textTheme.headlineLarge,
             ),
-            
+
             const SizedBox(height: AppSpacing.xl),
-            
-            // Device Status Section
-            _buildSectionHeader('Device Status'),
+
+            // ========== APPEARANCE SECTION ==========
+            _SectionHeader(title: 'Appearance'),
             const SizedBox(height: AppSpacing.md),
-            
-            GlassCard(
+
+            SoftCard(
               child: Column(
                 children: [
-                  MetricRow(
-                    icon: Icons.router,
-                    label: 'Device ID',
-                    value: deviceState.deviceId,
+                  // Theme Toggle
+                  Consumer<ThemeProvider>(
+                    builder: (context, themeProvider, _) {
+                      return _SettingsTile(
+                        icon: themeProvider.isDarkMode
+                            ? Icons.dark_mode_rounded
+                            : Icons.light_mode_rounded,
+                        title: 'Dark Mode',
+                        subtitle: themeProvider.isDarkMode ? 'On' : 'Off',
+                        trailing: Switch(
+                          value: themeProvider.isDarkMode,
+                          onChanged: (value) => themeProvider.setDarkMode(value),
+                        ),
+                      );
+                    },
                   ),
-                  const Divider(color: AppColors.surfaceLight),
-                  MetricRow(
-                    icon: Icons.memory,
-                    label: 'Firmware Version',
-                    value: deviceState.firmwareVersion,
-                  ),
-                  const Divider(color: AppColors.surfaceLight),
-                  MetricRow(
-                    icon: Icons.sync,
-                    label: 'Sync Status',
-                    value: deviceState.syncLocked ? 'Locked' : 'Unlocked',
-                    color: deviceState.syncLocked
-                        ? AppColors.healthGreen
-                        : AppColors.anomalyAmber,
-                  ),
-                  const Divider(color: AppColors.surfaceLight),
-                  MetricRow(
-                    icon: Icons.speed,
-                    label: 'Sampling Rate',
-                    value: '${deviceState.samplingRate}',
-                    unit: 'Hz',
-                  ),
-                ],
-              ),
-            ),
-            
-            const SizedBox(height: AppSpacing.xl),
-            
-            // Connection Section
-            _buildSectionHeader('Connection'),
-            const SizedBox(height: AppSpacing.md),
-            
-            GlassCard(
-              child: Column(
-                children: [
-                  _SettingsItem(
-                    icon: Icons.wifi,
-                    title: 'Wi-Fi Network',
-                    subtitle: 'Connected to WI4ED-AP',
-                    trailing: Icon(
-                      Icons.check_circle,
-                      color: AppColors.healthGreen,
-                      size: 20,
-                    ),
-                  ),
-                  const Divider(color: AppColors.surfaceLight),
-                  _SettingsItem(
-                    icon: Icons.cloud_outlined,
-                    title: 'Cloud Sync',
-                    subtitle: 'Real-time data sync enabled',
-                    trailing: Switch(
-                      value: true,
-                      onChanged: (value) {},
-                      thumbColor: WidgetStatePropertyAll(AppColors.primary),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            
-            const SizedBox(height: AppSpacing.xl),
-            
-            // Notifications Section
-            _buildSectionHeader('Notifications'),
-            const SizedBox(height: AppSpacing.md),
-            
-            GlassCard(
-              child: Column(
-                children: [
-                  _SettingsItem(
-                    icon: Icons.notifications_active,
-                    title: 'Push Notifications',
-                    subtitle: 'Receive alerts on this device',
-                    trailing: Switch(
-                      value: true,
-                      onChanged: (value) {},
-                      thumbColor: WidgetStatePropertyAll(AppColors.primary),
-                    ),
-                  ),
-                  const Divider(color: AppColors.surfaceLight),
-                  _SettingsItem(
-                    icon: Icons.warning_amber,
-                    title: 'Critical Alerts Only',
-                    subtitle: 'Only notify for critical issues',
-                    trailing: Switch(
-                      value: false,
-                      onChanged: (value) {},
-                      thumbColor: WidgetStatePropertyAll(AppColors.primary),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            
-            const SizedBox(height: AppSpacing.xl),
-            
-            // Advanced Section (Engineering)
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.sm,
-                vertical: AppSpacing.xxs,
-              ),
-              decoration: BoxDecoration(
-                color: AppColors.secondary.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                'ADVANCED',
-                style: AppTypography.badge.copyWith(
-                  color: AppColors.secondary,
-                  letterSpacing: 1,
-                ),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            
-            GlassCard(
-              borderColor: AppColors.secondary.withValues(alpha: 0.2),
-              child: Column(
-                children: [
-                  _SettingsItem(
-                    icon: Icons.analytics_outlined,
-                    title: 'Waveform Preview',
-                    subtitle: 'Show raw voltage/current waveforms',
-                    trailing: Switch(
-                      value: false,
-                      onChanged: (value) {},
-                      thumbColor: WidgetStatePropertyAll(AppColors.secondary),
-                    ),
-                  ),
-                  const Divider(color: AppColors.surfaceLight),
-                  _SettingsItem(
-                    icon: Icons.developer_mode,
-                    title: 'Debug Mode',
-                    subtitle: 'Enable diagnostic logging',
-                    trailing: Switch(
-                      value: false,
-                      onChanged: (value) {},
-                      thumbColor: WidgetStatePropertyAll(AppColors.secondary),
-                    ),
-                  ),
-                  const Divider(color: AppColors.surfaceLight),
-                  _SettingsItem(
-                    icon: Icons.restart_alt,
-                    title: 'Reset Device',
-                    subtitle: 'Factory reset WI4ED device',
-                    onTap: () {
-                      _showResetDialog(context);
+                  const _TileDivider(),
+                  // Language
+                  Consumer<LocaleProvider>(
+                    builder: (context, localeProvider, _) {
+                      String langName = 'English';
+                      if (localeProvider.locale.languageCode == 'hi') {
+                        langName = 'हिंदी';
+                      } else if (localeProvider.locale.languageCode == 'ta') {
+                        langName = 'தமிழ்';
+                      }
+                      return _SettingsTile(
+                        icon: Icons.language_rounded,
+                        title: l10n.language,
+                        subtitle: langName,
+                        onTap: () => _showLanguageSheet(context, l10n),
+                      );
                     },
                   ),
                 ],
               ),
             ),
-            
+
             const SizedBox(height: AppSpacing.xl),
-            
-            // About Section
-            _buildSectionHeader('About'),
+
+            // ========== DEVICE INFO SECTION ==========
+            _SectionHeader(title: l10n.deviceStatus),
             const SizedBox(height: AppSpacing.md),
-            
-            GlassCard(
+
+            SoftCard(
               child: Column(
                 children: [
-                  _SettingsItem(
-                    icon: Icons.info_outline,
+                  _SettingsTile(
+                    icon: Icons.router_rounded,
+                    title: l10n.deviceID,
+                    subtitle: deviceState.deviceId,
+                  ),
+                  const _TileDivider(),
+                  _SettingsTile(
+                    icon: Icons.memory_rounded,
+                    title: l10n.firmwareVersion,
+                    subtitle: deviceState.firmwareVersion,
+                  ),
+                  const _TileDivider(),
+                  _SettingsTile(
+                    icon: Icons.sync_rounded,
+                    title: l10n.syncStatus,
+                    subtitle: deviceState.syncLocked ? l10n.locked : l10n.unlocked,
+                    subtitleColor: deviceState.syncLocked
+                        ? AppColors.success
+                        : AppColors.warning,
+                  ),
+                  const _TileDivider(),
+                  _SettingsTile(
+                    icon: Icons.speed_rounded,
+                    title: l10n.samplingRate,
+                    subtitle: '${deviceState.samplingRate} Hz',
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: AppSpacing.xl),
+
+            // ========== NOTIFICATIONS SECTION ==========
+            _SectionHeader(title: l10n.notifications),
+            const SizedBox(height: AppSpacing.md),
+
+            SoftCard(
+              child: Column(
+                children: [
+                  _SettingsTile(
+                    icon: Icons.notifications_active_rounded,
+                    title: l10n.pushNotifications,
+                    subtitle: l10n.receiveAlerts,
+                    trailing: Switch(value: true, onChanged: (_) {}),
+                  ),
+                  const _TileDivider(),
+                  _SettingsTile(
+                    icon: Icons.warning_amber_rounded,
+                    title: l10n.criticalAlertsOnly,
+                    subtitle: l10n.onlyCritical,
+                    trailing: Switch(value: false, onChanged: (_) {}),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: AppSpacing.xl),
+
+            // ========== ABOUT SECTION ==========
+            _SectionHeader(title: l10n.about),
+            const SizedBox(height: AppSpacing.md),
+
+            SoftCard(
+              child: Column(
+                children: [
+                  _SettingsTile(
+                    icon: Icons.info_outline_rounded,
                     title: 'About WI4ED',
                     subtitle: 'Version 1.0.0',
                     onTap: () {},
                   ),
-                  const Divider(color: AppColors.surfaceLight),
-                  _SettingsItem(
-                    icon: Icons.help_outline,
-                    title: 'Help & Support',
-                    subtitle: 'FAQ and contact support',
+                  const _TileDivider(),
+                  _SettingsTile(
+                    icon: Icons.help_outline_rounded,
+                    title: l10n.helpSupport,
+                    subtitle: l10n.faqContact,
                     onTap: () {},
                   ),
-                  const Divider(color: AppColors.surfaceLight),
-                  _SettingsItem(
+                  const _TileDivider(),
+                  _SettingsTile(
                     icon: Icons.privacy_tip_outlined,
-                    title: 'Privacy Policy',
-                    subtitle: 'How we handle your data',
+                    title: l10n.privacyPolicy,
+                    subtitle: l10n.dataHandling,
                     onTap: () {},
                   ),
                 ],
               ),
             ),
-            
+
+            const SizedBox(height: AppSpacing.xl),
+
+            // ========== LOGOUT BUTTON ==========
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (_) => const LoginScreen()),
+                    (route) => false,
+                  );
+                },
+                icon: const Icon(Icons.logout_rounded),
+                label: Text(l10n.logout),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.error,
+                  side: BorderSide(color: AppColors.error.withValues(alpha: 0.5)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+
             const SizedBox(height: AppSpacing.huge),
           ],
         ),
@@ -237,112 +214,150 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSectionHeader(String title) {
-    return Text(
-      title,
-      style: AppTypography.sectionTitle,
+  void _showLanguageSheet(BuildContext context, AppLocalizations l10n) {
+    final theme = Theme.of(context);
+    
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: theme.colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.all(AppSpacing.xl),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.outline,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xl),
+              Text(
+                l10n.selectLanguage,
+                style: theme.textTheme.headlineSmall,
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              const LanguageSelector(),
+              const SizedBox(height: AppSpacing.lg),
+            ],
+          ),
+        );
+      },
     );
   }
+}
 
-  void _showResetDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-        title: Text(
-          'Reset Device?',
-          style: AppTypography.sectionTitle,
-        ),
-        content: Text(
-          'This will reset all device settings and signatures. This action cannot be undone.',
-          style: AppTypography.body,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(
-              'Cancel',
-              style: AppTypography.button.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(
-              'Reset',
-              style: AppTypography.button.copyWith(
-                color: AppColors.anomalyRed,
-              ),
-            ),
-          ),
-        ],
+// ============================================================
+// HELPER WIDGETS
+// ============================================================
+
+class _SectionHeader extends StatelessWidget {
+  final String title;
+  const _SectionHeader({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      title,
+      style: AppTypography.sectionTitle.copyWith(
+        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8),
       ),
     );
   }
 }
 
-class _SettingsItem extends StatelessWidget {
+class _TileDivider extends StatelessWidget {
+  const _TileDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return Divider(
+      color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.1),
+      height: 1,
+    );
+  }
+}
+
+class _SettingsTile extends StatelessWidget {
   final IconData icon;
   final String title;
   final String subtitle;
+  final Color? subtitleColor;
   final Widget? trailing;
   final VoidCallback? onTap;
 
-  const _SettingsItem({
+  const _SettingsTile({
     required this.icon,
     required this.title,
     required this.subtitle,
+    this.subtitleColor,
     this.trailing,
     this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+        padding: const EdgeInsets.symmetric(vertical: 12),
         child: Row(
           children: [
+            // Icon
             Container(
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: AppColors.surfaceLight,
-                borderRadius: BorderRadius.circular(12),
+                color: isDark
+                    ? AppColors.darkSurfaceHighlight
+                    : AppColors.lightSurfaceHighlight,
+                borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
                 icon,
-                color: AppColors.textSecondary,
                 size: 20,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
-            const SizedBox(width: AppSpacing.md),
+            const SizedBox(width: 12),
+            // Title & Subtitle
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     title,
-                    style: AppTypography.cardTitle,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
+                  const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: AppTypography.caption,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: subtitleColor ??
+                          theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                    ),
                   ),
                 ],
               ),
             ),
+            // Trailing
             if (trailing != null) trailing!,
             if (onTap != null && trailing == null)
-              const Icon(
-                Icons.chevron_right,
-                color: AppColors.textSecondary,
+              Icon(
+                Icons.chevron_right_rounded,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
               ),
           ],
         ),

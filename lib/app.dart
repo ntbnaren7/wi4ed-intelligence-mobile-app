@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:wi4ed_app/l10n/app_localizations.dart';
+
 import 'core/theme/app_theme.dart';
-import 'core/theme/app_colors.dart';
+import 'core/providers/locale_provider.dart';
+import 'core/providers/theme_provider.dart';
+import 'core/providers/navigation_provider.dart';
 import 'presentation/navigation/bottom_nav_bar.dart';
+import 'presentation/screens/auth/login_screen.dart';
 import 'presentation/screens/home/home_screen.dart';
 import 'presentation/screens/appliances/appliances_screen.dart';
 import 'presentation/screens/alerts/alerts_screen.dart';
@@ -14,21 +20,36 @@ class WI4EDApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Set system UI overlay style
-    SystemChrome.setSystemUIOverlayStyle(
-      const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.light,
-        systemNavigationBarColor: AppColors.surface,
-        systemNavigationBarIconBrightness: Brightness.light,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => LocaleProvider()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => NavigationProvider()),
+      ],
+      child: Consumer2<LocaleProvider, ThemeProvider>(
+        builder: (context, localeProvider, themeProvider, child) {
+          return MaterialApp(
+            title: 'WI4ED',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
+            themeMode: themeProvider.themeMode,
+            locale: localeProvider.locale,
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: const [
+              Locale('en'),
+              Locale('hi'),
+              Locale('ta'),
+            ],
+            home: const LoginScreen(),
+          );
+        },
       ),
-    );
-
-    return MaterialApp(
-      title: 'WI4ED',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme,
-      home: const MainScreen(),
     );
   }
 }
@@ -42,8 +63,6 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  int _currentIndex = 0;
-
   final List<Widget> _screens = const [
     HomeScreen(),
     AppliancesScreen(),
@@ -53,8 +72,11 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final navigation = Provider.of<NavigationProvider>(context);
+    
     return Scaffold(
-      backgroundColor: AppColors.base,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         bottom: false,
         child: AnimatedSwitcher(
@@ -66,18 +88,14 @@ class _MainScreenState extends State<MainScreen> {
             );
           },
           child: KeyedSubtree(
-            key: ValueKey(_currentIndex),
-            child: _screens[_currentIndex],
+            key: ValueKey(navigation.currentIndex),
+            child: _screens[navigation.currentIndex],
           ),
         ),
       ),
       bottomNavigationBar: WI4EDBottomNavBar(
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
+        currentIndex: navigation.currentIndex,
+        onTap: (index) => navigation.setIndex(index),
       ),
     );
   }
