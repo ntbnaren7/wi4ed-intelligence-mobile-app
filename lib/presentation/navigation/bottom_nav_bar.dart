@@ -59,10 +59,16 @@ class WI4EDBottomNavBar extends StatelessWidget {
               showBadge: true,
             ),
             _NavItem(
-              icon: Icons.settings_rounded,
-              label: 'Settings',
+              icon: Icons.history_rounded,
+              label: 'Logs',
               isSelected: currentIndex == 3,
               onTap: () => onTap(3),
+            ),
+            _NavItem(
+              icon: Icons.settings_rounded,
+              label: 'Settings',
+              isSelected: currentIndex == 4,
+              onTap: () => onTap(4),
             ),
           ],
         ),

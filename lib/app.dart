@@ -12,6 +12,7 @@ import 'presentation/screens/auth/login_screen.dart';
 import 'presentation/screens/home/home_screen.dart';
 import 'presentation/screens/appliances/appliances_screen.dart';
 import 'presentation/screens/alerts/alerts_screen.dart';
+import 'presentation/screens/logs/logs_screen.dart';
 import 'presentation/screens/settings/settings_screen.dart';
 
 /// Main App Widget
@@ -67,6 +68,7 @@ class _MainScreenState extends State<MainScreen> {
     HomeScreen(),
     AppliancesScreen(),
     AlertsScreen(),
+    LogsScreen(),
     SettingsScreen(),
   ];
 

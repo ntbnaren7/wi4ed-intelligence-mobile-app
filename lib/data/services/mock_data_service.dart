@@ -1,7 +1,9 @@
+import 'dart:math';
 import '../models/device_state.dart';
 import '../models/appliance.dart';
 import '../models/alert.dart';
 import '../models/signature.dart';
+import '../models/log_entry.dart';
 
 /// Mock data service simulating edge API responses
 class MockDataService {
@@ -308,5 +310,112 @@ class MockDataService {
     }
     
     return points;
+  }
+
+  /// Get historical logs for the past N days
+  List<DailyLog> getHistoricalLogs({int days = 30}) {
+    final rng = Random(42); // Fixed seed for consistent demo data
+    final logs = <DailyLog>[];
+    final now = DateTime.now();
+    
+    final applianceNames = [
+      ('app-001', 'Washing Machine', 'local_laundry_service', 0.8),
+      ('app-002', 'Refrigerator', 'kitchen', 2.4),
+      ('app-003', 'Air Conditioner', 'ac_unit', 8.5),
+      ('app-004', 'Microwave Oven', 'microwave', 0.3),
+      ('app-005', 'Water Heater', 'water_drop', 4.2),
+    ];
+
+    for (int i = days - 1; i >= 0; i--) {
+      final date = DateTime(now.year, now.month, now.day).subtract(Duration(days: i));
+      final isWeekend = date.weekday == DateTime.saturday || date.weekday == DateTime.sunday;
+      
+      final appLogs = <ApplianceLog>[];
+      double dailyTotal = 0;
+      int anomalyCount = 0;
+
+      for (final app in applianceNames) {
+        // Vary usage based on day
+        double baseKwh = app.$4;
+        double usageKwh = baseKwh * (0.7 + rng.nextDouble() * 0.6);
+        if (isWeekend && app.$2 == 'Air Conditioner') usageKwh *= 1.4;
+        
+        int duration = (usageKwh * 60 / (app.$4 + 0.1)).round().clamp(10, 1440);
+        int health = 70 + rng.nextInt(30);
+        
+        // Random anomalies (10% chance)
+        String? anomalyType;
+        String? anomalyDesc;
+        if (rng.nextDouble() < 0.1) {
+          anomalyCount++;
+          final types = ['inrush_growth', 'duty_cycle_abnormal', 'signature_drift'];
+          anomalyType = types[rng.nextInt(types.length)];
+          anomalyDesc = 'Unusual pattern detected during operation';
+          health = 40 + rng.nextInt(30);
+        }
+
+        appLogs.add(ApplianceLog(
+          applianceId: app.$1,
+          applianceName: app.$2,
+          iconName: app.$3,
+          usageKwh: double.parse(usageKwh.toStringAsFixed(2)),
+          durationMinutes: duration,
+          healthScore: health,
+          anomalyType: anomalyType,
+          anomalyDescription: anomalyDesc,
+        ));
+        
+        dailyTotal += usageKwh;
+      }
+
+      logs.add(DailyLog(
+        date: date,
+        totalKwh: double.parse(dailyTotal.toStringAsFixed(2)),
+        peakPowerW: 1800 + rng.nextDouble() * 1200,
+        avgPowerW: 400 + rng.nextDouble() * 300,
+        anomalyCount: anomalyCount,
+        applianceLogs: appLogs,
+      ));
+    }
+
+    return logs;
+  }
+
+  /// Get aggregated stats for a date range
+  RangeStats getRangeStats(DateRange range) {
+    final allLogs = getHistoricalLogs(days: 60);
+    final filtered = allLogs.where((l) => range.includes(l.date)).toList();
+    
+    if (filtered.isEmpty) {
+      return RangeStats(
+        range: range,
+        totalKwh: 0,
+        avgDailyKwh: 0,
+        peakPowerW: 0,
+        totalAnomalies: 0,
+        dailyLogs: [],
+      );
+    }
+
+    final totalKwh = filtered.fold<double>(0, (sum, l) => sum + l.totalKwh);
+    final peakPower = filtered.fold<double>(0, (max, l) => l.peakPowerW > max ? l.peakPowerW : max);
+    final totalAnomalies = filtered.fold<int>(0, (sum, l) => sum + l.anomalyCount);
+    
+    String? insight;
+    if (totalAnomalies > 3) {
+      insight = 'Multiple anomalies detected – review appliance health';
+    } else if (totalKwh / filtered.length > 20) {
+      insight = 'Above-average consumption this period';
+    }
+
+    return RangeStats(
+      range: range,
+      totalKwh: double.parse(totalKwh.toStringAsFixed(2)),
+      avgDailyKwh: double.parse((totalKwh / filtered.length).toStringAsFixed(2)),
+      peakPowerW: double.parse(peakPower.toStringAsFixed(0)),
+      totalAnomalies: totalAnomalies,
+      patternInsight: insight,
+      dailyLogs: filtered,
+    );
   }
 }

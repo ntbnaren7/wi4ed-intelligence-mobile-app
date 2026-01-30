@@ -2,109 +2,89 @@
 
 ![Flutter](https://img.shields.io/badge/Flutter-%2302569B.svg?style=for-the-badge&logo=Flutter&logoColor=white)
 ![Dart](https://img.shields.io/badge/dart-%230175C2.svg?style=for-the-badge&logo=dart&logoColor=white)
+![State Management](https://img.shields.io/badge/State--Management-Provider-%230175C2.svg?style=for-the-badge)
 ![License](https://img.shields.io/badge/license-MIT-green.svg?style=for-the-badge)
 
-**WI4ED** is a premium, edge-intelligent mobile application designed for real-time electrical safety monitoring and appliance-health analysis. Featuring a state-of-the-art dark theme, the app provides homeowners with deep insights into their energy consumption and electrical infrastructure health.
+**WI4ED** is a state-of-the-art, edge-intelligent mobile application designed for real-time electrical safety monitoring and appliance-health analysis. Built with a "dark-first" philosophy, the app provides homeowners with unparalleled visibility into their electrical infrastructure.
 
 ---
 
-## ✨ Features
+## 🚀 Key Features
 
-### 🔌 Edge-Intelligent Monitoring
-- **Real-time Power Analytics**: Monitor total power consumption (Watts) with high precision.
-- **Appliance Signatures**: Analyze unique electrical signatures to identify specific appliances and their health status.
-- **Energy Efficiency Tracking**: Track energy usage (kWh) to identify waste and optimize consumption.
+### 🔌 Intelligent Power Analytics
+*   **Real-time Scorecard**: High-precision power consumption monitoring (Watts) with a dynamic, gradient-mapped gauge.
+*   **Signature Recognition**: Advanced identification of appliance-specific electrical footprints.
+*   **Usage Breakdown**: Granular energy tracking (kWh) across individual devices.
 
-### 🛡️ Electrical Safety & Anomaly Detection
-- **Smart Alerts**: Immediate notifications for anomalies like sustained overloads, inrush growth, or signature drifts.
-- **Health Scoring**: Predictive appliance health scores (0-100) to preemptively detect failures.
-- **Anomaly Banners**: High-visibility alerts for critical electrical events.
+### 📜 Historical Log Explorer (New)
+*   **Smart Timeline**: Horizontal calendar strip with support for single-day and custom date range selection.
+*   **Historical Insights**: Automatic pattern detection highlighting "12% lower usage" or "High Usage" anomalies.
+*   **Appliance Catalog**: Detailed historical list of device performance, health scores, and individual anomaly logs.
 
-### 🎨 Premium Dark UI/UX
-- **Modern Aesthetics**: True black background with a vibrant Lime Green (#B5FF00) accent palette.
-- **Dynamic Visuals**: 
-  - **Semi-circular Power Gauge**: A custom-painted 180° arc with smooth gradients and radial glows.
-  - **Pill-style Navigation**: Clean, minimal bottom navigation with micro-animations.
-  - **Glassmorphism**: Subtle glass-effect cards and overlays for a premium feel.
-- **Optimized Layout**: High-density information presented with generous spacing and modern typography (Inter).
+### 🛡️ Safety & Anomaly Center
+*   **Predictive Health**: Real-time health scoring (0-100%) to preemptive detect appliance failure.
+*   **Critical Alerts**: Actionable notifications for inrush growth, sustained overloads, and signature drifts.
+*   **Status Indicators**: Glowing high-visibility indicators for "Normal" vs "Anomalous" operating modes.
 
-### 🌍 Localization & Accessibility
-- **Multi-language Support**: Fully localized for Global audiences.
-- **Theme-aware Design**: While optimized for Dark mode, components are built with systemic theme providers.
+### 🎨 Premium Aesthetics
+*   **OLED Black UI**: True black (#0A0A0A) background for maximum contrast and battery efficiency.
+*   **Lime Accent Engine**: Integrated premium lime (#B5FF00) design system with glassmorphic cards.
+*   **Micro-animations**: Smooth transitions, radial glows, and animated switcher navigation.
 
 ---
 
-## 🛠️ Tech Stack
+## 🛠️ Tech Stack & Architecture
 
-- **Framework**: [Flutter](https://flutter.dev) (Dart)
-- **State Management**: [Provider](https://pub.dev/packages/provider)
-- **Visualization**: [fl_chart](https://pub.dev/packages/fl_chart)
-- **Typography**: [Google Fonts (Inter)](https://fonts.google.com/specimen/Inter)
-- **Theming**: Systemic Custom Theme Engine
+| Component | Technology |
+| :--- | :--- |
+| **Framework** | Flutter (Dart SDK ^3.10.8) |
+| **State Management** | Provider (ChangeNotifier / Consumer) |
+| **Visualization** | Custom Painter API & FL Chart |
+| **Typography** | Inter & Google Fonts Integration |
+| **Localization** | Flutter Intl (Multi-language Support) |
 
----
-
-## 🏗️ Architecture
-
-The project follows a modular layered architecture to ensure scalability and maintainability:
-
+### Layered Architecture
 ```text
 lib/
-├── core/           # Core themes, providers, and shared utilities
-├── data/           # Models and services (Mock & API)
-├── l10n/           # Localization strings and configurations
-├── presentation/   # UI layer (Screens, Widgets, Navigation)
-│   ├── screens/    # Feature-specific screens (Home, Auth, Settings, etc.)
-│   ├── widgets/    # Reusable custom UI components
-│   └── navigation/ # Custom navigation bars and logic
-└── app.dart        # Main app configuration
+├── core/           # Design System, Theme Data, Providers
+├── data/           # Models, Historical Logging Services, Mock API
+├── l10n/           # Multi-language localization bundles
+├── presentation/   # UI components
+│   ├── navigation/ # Pill-style Bottom Navigation
+│   ├── screens/    # Stats, Devices, Alerts, Logs, Settings
+│   └── widgets/    # MetricRing, SoftCard, CalendarStrip
+└── app.dart        # Internal routing and app configuration
 ```
 
 ---
 
-## 🚀 Getting Started
+## 💻 Getting Started
 
 ### Prerequisites
-- Flutter SDK (latest stable version)
-- Dart SDK
-- Android Studio / VS Code with Flutter extension
+*   Flutter SDK (Stable Channel)
+*   VS Code / Android Studio with Flutter extensions
 
 ### Installation
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/your-username/wi4ed-mobile-app.git
-   cd wi4ed-mobile-app
-   ```
-
-2. **Install dependencies**
-   ```bash
-   flutter pub get
-   ```
-
-3. **Run the application**
-   ```bash
-   flutter run
-   ```
-
----
-
-## 📸 UI Highlights
-
-- **Home Screen**: Features the "Integrated Power Score" gauge with real-time radial pulses and activity tracking.
-- **Appliance Details**: Deep-dive analytics for individual devices including historical efficiency.
-- **Safety Center**: Managed view of all current anomalies and electrical health status.
+1.  **Clone the Repo**
+    ```bash
+    git clone https://github.com/your-username/wi4ed-mobile-app.git
+    cd wi4ed-mobile-app
+    ```
+2.  **Fetch Dependencies**
+    ```bash
+    flutter pub get
+    ```
+3.  **Run Application**
+    ```bash
+    flutter run
+    ```
 
 ---
 
 ## 📄 License
 
-This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+This software is released under the **MIT License**. See the [LICENSE](LICENSE) file for more information.
 
 ---
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
----
+*Developed with focus on Electrical Safety and Premium UX*
