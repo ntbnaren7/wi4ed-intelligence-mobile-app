@@ -1,0 +1,256 @@
+import 'package:flutter/material.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_typography.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../data/models/appliance.dart';
+import '../../../data/services/mock_data_service.dart';
+import '../../widgets/glass_card.dart';
+import '../../widgets/health_ring.dart';
+import '../../widgets/trend_chip.dart';
+import '../../widgets/anomaly_banner.dart';
+import 'appliance_detail_screen.dart';
+
+/// Appliances screen showing all detected appliance signatures
+class AppliancesScreen extends StatefulWidget {
+  const AppliancesScreen({super.key});
+
+  @override
+  State<AppliancesScreen> createState() => _AppliancesScreenState();
+}
+
+class _AppliancesScreenState extends State<AppliancesScreen> {
+  late List<Appliance> _appliances;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAppliances();
+  }
+
+  void _loadAppliances() {
+    final appliances = MockDataService.instance.getAppliances();
+    // Sort: anomalous first, then by health (low to high)
+    appliances.sort((a, b) {
+      if (a.hasActiveAnomaly && !b.hasActiveAnomaly) return -1;
+      if (!a.hasActiveAnomaly && b.hasActiveAnomaly) return 1;
+      return a.healthScore.compareTo(b.healthScore);
+    });
+    setState(() {
+      _appliances = appliances;
+    });
+  }
+
+  void _navigateToDetail(Appliance appliance) {
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            ApplianceDetailScreen(appliance: appliance),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(
+            opacity: animation,
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0.05, 0),
+                end: Offset.zero,
+              ).animate(CurvedAnimation(
+                parent: animation,
+                curve: Curves.easeOutCubic,
+              )),
+              child: child,
+            ),
+          );
+        },
+        transitionDuration: const Duration(milliseconds: 300),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return RefreshIndicator(
+      onRefresh: () async {
+        _loadAppliances();
+      },
+      color: AppColors.primary,
+      backgroundColor: AppColors.surface,
+      child: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
+        slivers: [
+          // Header
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.screenPaddingH),
+              child: Row(
+                children: [
+                  Text(
+                    'Appliances',
+                    style: AppTypography.pageTitle,
+                  ),
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.sm,
+                      vertical: AppSpacing.xxs,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceLight,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '${_appliances.length} detected',
+                      style: AppTypography.caption,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Appliance cards
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.screenPaddingH,
+            ),
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final appliance = _appliances[index];
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: AppSpacing.cardGap),
+                    child: _ApplianceCard(
+                      appliance: appliance,
+                      onTap: () => _navigateToDetail(appliance),
+                    ),
+                  );
+                },
+                childCount: _appliances.length,
+              ),
+            ),
+          ),
+
+          // Bottom spacing
+          const SliverToBoxAdapter(
+            child: SizedBox(height: AppSpacing.huge),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ApplianceCard extends StatelessWidget {
+  final Appliance appliance;
+  final VoidCallback onTap;
+
+  const _ApplianceCard({
+    required this.appliance,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final healthColor = AppColors.getHealthColor(appliance.healthScore);
+    final hasAnomaly = appliance.hasActiveAnomaly;
+
+    return GlassCard(
+      onTap: onTap,
+      glowColor: hasAnomaly
+          ? AppColors.anomalyAmber.withValues(alpha: 0.3)
+          : healthColor.withValues(alpha: 0.2),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              // Icon
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: hasAnomaly
+                      ? AppColors.anomalyAmber.withValues(alpha: 0.15)
+                      : AppColors.surfaceLight,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(
+                  _getApplianceIcon(appliance.iconName),
+                  color: hasAnomaly ? AppColors.anomalyAmber : AppColors.primary,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              // Name and status
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            appliance.name,
+                            style: AppTypography.cardTitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (hasAnomaly)
+                          AnomalyIndicator(
+                            hasAnomaly: true,
+                            severity: appliance.recentAnomaly?.severity,
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Text(
+                          '${appliance.currentPowerW.toStringAsFixed(0)}W',
+                          style: AppTypography.bodyMedium,
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        ConfidenceBadge(
+                          confidence: appliance.matchConfidence,
+                          compact: true,
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        TrendChip(
+                          state: appliance.trendState,
+                          compact: true,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          // Health bar
+          HealthBar(
+            score: appliance.healthScore,
+            width: double.infinity,
+            showLabel: true,
+          ),
+        ],
+      ),
+    );
+  }
+
+  IconData _getApplianceIcon(String iconName) {
+    switch (iconName) {
+      case 'local_laundry_service':
+        return Icons.local_laundry_service;
+      case 'kitchen':
+        return Icons.kitchen;
+      case 'ac_unit':
+        return Icons.ac_unit;
+      case 'microwave':
+        return Icons.microwave;
+      case 'water_drop':
+        return Icons.water_drop;
+      default:
+        return Icons.electrical_services;
+    }
+  }
+}
