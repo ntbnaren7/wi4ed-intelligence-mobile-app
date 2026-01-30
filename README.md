@@ -108,4 +108,3 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
 ---
-*Created with ❤️ by the WI4ED Engineering Team*
