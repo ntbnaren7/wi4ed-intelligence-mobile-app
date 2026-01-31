@@ -4,6 +4,7 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../data/models/appliance.dart';
 import '../../../data/services/mock_data_service.dart';
+import '../../../data/services/twilio_service.dart';
 import '../../widgets/glass_card.dart';
 import '../../widgets/health_ring.dart';
 import '../../widgets/trend_chip.dart';
@@ -65,6 +66,94 @@ class _AppliancesScreenState extends State<AppliancesScreen> {
     );
   }
 
+  void _showSOSConfirmation(BuildContext context, Appliance appliance) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.darkSurface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.red.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.warning_rounded, color: Colors.red, size: 24),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Emergency Call',
+                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'This will trigger an emergency phone call regarding "${appliance.name}".\n\nAre you sure you want to proceed?',
+          style: TextStyle(color: Colors.white.withValues(alpha: 0.8)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text('Cancel', style: TextStyle(color: Colors.white.withValues(alpha: 0.6))),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.of(ctx).pop();
+              _triggerSOSCall(appliance);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Call Now'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _triggerSOSCall(Appliance appliance) async {
+    // Show loading
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const SizedBox(
+              width: 20, height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+            ),
+            const SizedBox(width: 12),
+            Text('Initiating call for ${appliance.name}...'),
+          ],
+        ),
+        backgroundColor: AppColors.darkSurface,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+
+    final success = await TwilioService.instance.triggerEmergencyCall(
+      applianceName: appliance.name,
+    );
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          success 
+              ? '✅ Emergency call initiated successfully!' 
+              : '❌ Failed to initiate call. Check Twilio credentials.',
+        ),
+        backgroundColor: success ? Colors.green : Colors.red,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return RefreshIndicator(
@@ -120,6 +209,7 @@ class _AppliancesScreenState extends State<AppliancesScreen> {
                     child: _ApplianceCard(
                       appliance: appliance,
                       onTap: () => _navigateToDetail(appliance),
+                      onSOS: () => _showSOSConfirmation(context, appliance),
                     ),
                   );
                 },
@@ -141,10 +231,12 @@ class _AppliancesScreenState extends State<AppliancesScreen> {
 class _ApplianceCard extends StatelessWidget {
   final Appliance appliance;
   final VoidCallback onTap;
+  final VoidCallback onSOS;
 
   const _ApplianceCard({
     required this.appliance,
     required this.onTap,
+    required this.onSOS,
   });
 
   @override
@@ -176,6 +268,28 @@ class _ApplianceCard extends StatelessWidget {
                   _getApplianceIcon(appliance.iconName),
                   color: hasAnomaly ? AppColors.anomalyAmber : AppColors.primary,
                   size: 24,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              // SOS Button
+              GestureDetector(
+                onTap: onSOS,
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.red.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Colors.red.withValues(alpha: 0.4),
+                      width: 1,
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.phone_enabled_rounded,
+                    color: Colors.red,
+                    size: 20,
+                  ),
                 ),
               ),
               const SizedBox(width: AppSpacing.md),
